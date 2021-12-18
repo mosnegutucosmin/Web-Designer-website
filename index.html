@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MC Design &mdash; Improve your online experiences</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Noi iti devoltam afacerea in ONLINE!" />
+<meta name="author" content="http://mcdesign.ro" />
+<!-- css -->
+<link href="css/bootstrap.min.css" rel="stylesheet" />
+<link href="plugins/flexslider/flexslider.css" rel="stylesheet" media="screen" />	
+<link href="css/cubeportfolio.min.css" rel="stylesheet" />
+<link href="css/style.css" rel="stylesheet" />
+<link rel="shortcut icon" href="favicon.ico" />
+
+<!-- Theme skin -->
+<link id="t-colors" href="skins/default.css" rel="stylesheet" />
+
+	<!-- boxed bg -->
+	<link id="bodybg" href="bodybg/bg3.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+<div id="wrapper">
+<style>
+  #snowflakeContainer {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: none;
+  }
+
+  .snowflake {
+    position: fixed;
+    background-color: #CCC;
+    user-select: none;
+    z-index: 1000;
+    pointer-events: none;
+    border-radius: 50%;
+    width: 10px;
+    height: 10px;
+  }
+</style>
+
+<div id="snowflakeContainer">
+  <span class="snowflake"></span>
+</div>
+
+<script>
+  // Array to store our Snowflake objects
+  var snowflakes = [];
+
+  // Global variables to store our browser's window size
+  var browserWidth;
+  var browserHeight;
+
+  // Specify the number of snowflakes you want visible
+  var numberOfSnowflakes = 50;
+
+  // Flag to reset the position of the snowflakes
+  var resetPosition = false;
+
+  // Handle accessibility
+  var enableAnimations = false;
+  var reduceMotionQuery = matchMedia("(prefers-reduced-motion)");
+
+  // Handle animation accessibility preferences 
+  function setAccessibilityState() {
+    if (reduceMotionQuery.matches) {
+      enableAnimations = false;
+    } else { 
+      enableAnimations = true;
+    }
+  }
+  setAccessibilityState();
+
+  reduceMotionQuery.addListener(setAccessibilityState);
+
+  //
+  // It all starts here...
+  //
+  function setup() {
+    if (enableAnimations) {
+      window.addEventListener("DOMContentLoaded", generateSnowflakes, false);
+      window.addEventListener("resize", setResetFlag, false);
+    }
+  }
+  setup();
+
+  //
+  // Constructor for our Snowflake object
+  //
+  function Snowflake(element, speed, xPos, yPos) {
+    // set initial snowflake properties
+    this.element = element;
+    this.speed = speed;
+    this.xPos = xPos;
+    this.yPos = yPos;
+    this.scale = 1;
+
+    // declare variables used for snowflake's motion
+    this.counter = 0;
+    this.sign = Math.random() < 0.5 ? 1 : -1;
+
+    // setting an initial opacity and size for our snowflake
+    this.element.style.opacity = (.1 + Math.random()) / 3;
+  }
+
+  //
+  // The function responsible for actually moving our snowflake
+  //
+  Snowflake.prototype.update = function () {
+    // using some trigonometry to determine our x and y position
+    this.counter += this.speed / 5000;
+    this.xPos += this.sign * this.speed * Math.cos(this.counter) / 40;
+    this.yPos += Math.sin(this.counter) / 40 + this.speed / 30;
+    this.scale = .5 + Math.abs(10 * Math.cos(this.counter) / 20);
+
+    // setting our snowflake's position
+    setTransform(Math.round(this.xPos), Math.round(this.yPos), this.scale, this.element);
+
+    // if snowflake goes below the browser window, move it back to the top
+    if (this.yPos > browserHeight) {
+      this.yPos = -50;
+    }
+  }
+
+  //
+  // A performant way to set your snowflake's position and size
+  //
+  function setTransform(xPos, yPos, scale, el) {
+    el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0) scale(${scale}, ${scale})`;
+  }
+
+  //
+  // The function responsible for creating the snowflake
+  //
+  function generateSnowflakes() {
+
+    // get our snowflake element from the DOM and store it
+    var originalSnowflake = document.querySelector(".snowflake");
+
+    // access our snowflake element's parent container
+    var snowflakeContainer = originalSnowflake.parentNode;
+    snowflakeContainer.style.display = "block";
+
+    // get our browser's size
+    browserWidth = document.documentElement.clientWidth;
+    browserHeight = document.documentElement.clientHeight;
+
+    // create each individual snowflake
+    for (var i = 0; i < numberOfSnowflakes; i++) {
+
+      // clone our original snowflake and add it to snowflakeContainer
+      var snowflakeClone = originalSnowflake.cloneNode(true);
+      snowflakeContainer.appendChild(snowflakeClone);
+
+      // set our snowflake's initial position and related properties
+      var initialXPos = getPosition(50, browserWidth);
+      var initialYPos = getPosition(50, browserHeight);
+      var speed = 5 + Math.random() * 40;
+
+      // create our Snowflake object
+      var snowflakeObject = new Snowflake(snowflakeClone,
+        speed,
+        initialXPos,
+        initialYPos);
+      snowflakes.push(snowflakeObject);
+    }
+
+    // remove the original snowflake because we no longer need it visible
+    snowflakeContainer.removeChild(originalSnowflake);
+
+    moveSnowflakes();
+  }
+
+  //
+  // Responsible for moving each snowflake by calling its update function
+  //
+  function moveSnowflakes() {
+
+    if (enableAnimations) {
+      for (var i = 0; i < snowflakes.length; i++) {
+        var snowflake = snowflakes[i];
+        snowflake.update();
+      }      
+    }
+
+    // Reset the position of all the snowflakes to a new value
+    if (resetPosition) {
+      browserWidth = document.documentElement.clientWidth;
+      browserHeight = document.documentElement.clientHeight;
+
+      for (var i = 0; i < snowflakes.length; i++) {
+        var snowflake = snowflakes[i];
+
+        snowflake.xPos = getPosition(50, browserWidth);
+        snowflake.yPos = getPosition(50, browserHeight);
+      }
+
+      resetPosition = false;
+    }
+
+    requestAnimationFrame(moveSnowflakes);
+  }
+
+  //
+  // This function returns a number between (maximum - offset) and (maximum + offset)
+  //
+  function getPosition(offset, size) {
+    return Math.round(-1 * offset + Math.random() * (size + 2 * offset));
+  }
+
+  //
+  // Trigger a reset of all the snowflakes' positions
+  //
+  function setResetFlag(e) {
+    resetPosition = true;
+  }
+</script>
+	<!-- start header -->
+	<header>
+			<div class="top">
+				<div class="container">
+					<div class="row">
+						<div class="col-md-6">
+							<ul class="topleft-info">
+								<li><i class="fa fa-phone"></i> +40 748 951 521</li>
+							</ul>
+						</div>
+						<div class="col-md-6">
+							<div align="right">
+								Improve your online experiences
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>	
+			
+        <div class="navbar navbar-default navbar-static-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="index.html"><img src="img/logo.png" alt="" width="199" height="52" /></a>
+                </div>
+                <div class="navbar-collapse collapse ">
+                    <ul class="nav navbar-nav">
+						<li class="active"><a href="index.html">Acasa</a></li>
+						<li><a href="vreau-site.html">Vreau site</a></li>
+					<!--	<li><a href="vreau-grafica.html">Vreau grafica</a></li> -->
+						<li><a href="portofoliu.html">Portofoliu</a></li>
+						<li><a href="lista-preturi.html">Lista preturi</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+	</header>
+	<!-- end header -->
+	<section id="featured" class="bg">
+	<!-- start slider -->
+
+			
+	<!-- start slider -->
+	<div class="container">
+		<div class="row">
+			<div class="col-lg-12">
+	<!-- Slider -->
+        <div id="main-slider" class="main-slider flexslider">
+            <ul class="slides">
+              <li>
+                <img src="img/slides/flexslider/1.jpg" alt="" />
+                <div class="flex-caption">
+                    <h3>Ai nevoie de un site de prezentare!</h3> 
+					<p>Iesi in evidenta cu un design unic, profesional, care iti va plasa afacerea cat mai sus! Pentru noi nu exista imposibil. Provoaca-ne si vom crea impreuna cel mai bun design pentru site-ul tau.</p> 
+					<a href="lista-de-preturi.html" class="btn btn-theme">Verifica ofertele!</a>
+                </div>
+              </li>
+              <li>
+                <img src="img/slides/flexslider/2.jpg" alt="" />
+                <div class="flex-caption">
+                    <h3>Te ajutam sa iti dezlantui afacerea.</h3> 
+					<p>Pentru ca am ajuns intr-un punct in care oferim clientilor intregul arsenal de care au nevoie pentru a fi vizibili online si pentru a vinde - iti oferim o afacere de neoprit.</p> 
+					<a href="contact.html" class="btn btn-theme">Contacteaza-ne!</a>
+                </div>
+              </li>
+            </ul>
+        </div>
+	<!-- end slider -->
+			</div>
+		</div>
+	</div>	
+
+
+	</section>
+	<section class="callaction">
+	<div class="container">
+		<div class="row">
+							<div class="col-lg-8">
+								<div class="cta-text">
+									<h2>Aplica pentru reducerea lunii Decembrie, pana la <span>35%</span> pentru oricare dintre servicii</h2>
+									<p> Cererea se face pe pagina de contact sau prin email (contact@mcdesign.ro). <br/>Preturile deja afisate pe site NU AU APLICATA REDUCEREA!</p>
+								</div>
+							</div>
+							<div class="col-lg-4">
+								<div class="cta-btn">
+									<a href="contact.html" class="btn btn-theme btn-lg">Vreau reducere! <i class="fa fa-angle-right"></i></a>
+								</div>
+							</div>	
+		</div>
+	</div>
+	</section>
+	
+	<section id="content">
+		<div class="container">
+		<div class="row">
+			<div class="col-lg-12">
+				<div class="text-center">
+					<h3>Facem totul ca site-ul afacerii tale sa arate bine in <span class="highlight">online</span>, pentru ca tu sa obtii <span class="highlight">clienti fericiti</span>!</h3>			
+					<p>Vezi ce servicii iti oferim pentru ca afacerea ta sa fie printre cele mai puternice de pe piata.</p>
+				</div>
+			</div>		
+		</div>
+		</div>
+		
+		<div class="container">
+		<div class="row">
+			<div class="col-lg-12">
+				<div class="row">
+					<div class="col-sm-3 col-md-3 col-lg-3">
+						<div class="box">
+							<div class="aligncenter">								
+								<div class="icon">
+								<i class="fa fa-mobile fa-5x"></i>
+								</div>
+								<h4>UI & UX design</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-sm-3 col-md-3 col-lg-3">
+						<div class="box">
+							<div class="aligncenter">								
+								<div class="icon">
+								<i class="fa fa-facebook fa-5x"></i>
+								</div>
+								<h4>Social Media Ads</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-sm-3 col-md-3 col-lg-3">
+						<div class="box">
+							<div class="aligncenter">								
+								<div class="icon">
+								<i class="fa fa-paper-plane-o fa-5x"></i>
+								</div>
+								<h4>Email Marketing</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-sm-3 col-md-3 col-lg-3">
+						<div class="box">
+							<div class="aligncenter">								
+								<div class="icon">
+								<i class="fa fa-search fa-5x"></i>
+								</div>
+								<h4>Servicii SEO</h4>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		</div>
+		
+		<!-- divider -->
+		<div class="container">
+		<div class="row">
+			<div class="col-lg-12">
+				<div class="solidline">
+				</div>
+			</div>
+		</div>
+		</div>
+		<!-- end divider -->
+		
+		<div class="container">
+		<div class="row">
+			<div class="col-lg-12">
+				<div class="row">
+					<div class="col-sm-6 col-lg-6">
+						<h4>Vrei sa lucram impreuna sa iti crestem afacerea?</h4>
+						<p>
+							Suntem in cautarea unor clienti care stiu sa profite de experienta, dedicarea si talentul nostru. Daca vrei libertatea de a-ti creste business-ul, hai sa ne apucam de treaba!</p>
+					</div>
+					<div class="col-sm-6 col-lg-6">
+						<h4>Ce este web design-ul?</h4>
+						<p>"Web design-ul inseamna intreaga experienta a unui potential client, din momentul in care intra pe site si pana in momentul in care il paraseste. Web design inseamna aspectul general al site-ului, modul in care sunt aranjate informatiile, timpul de raspuns al diferitelor pagini si nu numai."</p>
+					</div>
+				</div>
+			</div>
+		</div>
+		</div>
+		
+		<!-- divider -->
+		<div class="container">
+		<div class="row">
+			<div class="col-lg-12">
+				<div class="blankline">
+				</div>
+			</div>
+		</div>
+		</div>
+		<!-- end divider -->
+		
+	<!-- parallax  -->
+	<div id="parallax1" class="parallax text-light text-center marginbot50" data-stellar-background-ratio="0.5">	
+           <div class="container">
+				<div class="row appear stats">
+					<div class="col-xs-6 col-sm-3 col-md-3">
+						<div class="align-center color-white txt-shadow">
+							<div class="icon">
+								<i class="fa fa-clock-o fa-5x"></i>
+							</div>
+						<strong id="counter-coffee" class="number">720</strong><br />
+						<span class="text">de ore lucrate</span>
+						</div>
+					</div>
+					<div class="col-xs-6 col-sm-3 col-md-3">
+						<div class="align-center color-white txt-shadow">
+							<div class="icon">
+								<i class="fa fa-music fa-5x"></i>
+							</div>
+						<strong id="counter-music" class="number">1833</strong><br />
+						<span class="text">melodii ascultate</span>
+						</div>
+					</div>
+					<div class="col-xs-6 col-sm-3 col-md-3">
+						<div class="align-center color-white txt-shadow">
+							<div class="icon">
+								<i class="fa fa-coffee fa-5x"></i>
+							</div>
+						<strong id="counter-clock" class="number">38</strong><br />
+						<span class="text">cafele baute</span>
+						</div>
+					</div>
+					<div class="col-xs-6 col-sm-3 col-md-3">
+						<div class="align-center color-white txt-shadow">
+							<div class="icon">
+								<i class="fa fa-trophy fa-5x"></i>
+							</div>
+						<strong id="counter-heart" class="number">6</strong><br />
+						<span class="text">proiecte finalizate</span>
+						</div>
+					</div>
+				</div>
+            </div>
+	</div>	 
+	
+		<div class="container">
+		<div class="row">
+			<div class="col-lg-12">
+				<div class="row">
+					<div class="col-sm-6 col-md-6">
+					<h4>Recenzii clienti:</h4>
+						<div class="testimonialslide clearfix flexslider">
+							<ul class="slides">
+								<li><blockquote>
+								Serviciile de grafica oferite de dumneavoastra au insemnat mult pentru pagina mea de fotograf. Cu cartile de vizita realizate mi-am marit profitul de peste 100%.  
+									</blockquote>
+									<h4>Teodor D.<span>&#8213; D.T. Photography</span></h4> 
+								</li>
+								<li><blockquote>
+								Foarte multumit de siteul creat de voi, foarte promti si atenti la detalii. Multumesc.  
+									</blockquote>
+									<h4>Gabriel E. <span>&#8213; Viceless Solutions </span></h4>
+								</li>	
+							</ul>
+						</div>					
+					</div>	
+					<div class="col-sm-6 col-lg-6">
+						<ul class="nav nav-tabs">
+							<h4>Cum decurge inceperea unui proiect?</h4>
+							<li class="active"><a href="#1" data-toggle="tab"><i class="icon-briefcase"></i>Primul pas</a></li>
+							<li><a href="#2" data-toggle="tab">al 2-lea</a></li>
+							<li><a href="#3" data-toggle="tab">al 3-lea</a></li>
+							<li><a href="#4" data-toggle="tab">final</a></li>
+						</ul>
+						<div class="tab-content">
+							<div class="tab-pane active" id="1">
+								<p><strong>Analiza proiectului</strong>
+									<br />Stabilim impreuna ceea ce va doriti</p>
+							</div>
+							<div class="tab-pane" id="2">
+								<p><strong>Creare design</strong><br />
+									Concepem un design personalizat</p>
+							</div>
+							<div class="tab-pane" id="3">
+								<p><strong>Dezvoltare web</strong><br />
+								Codam eficient si atenti la detalii</p>
+							</div>
+							<div class="tab-pane" id="4">
+								<p><strong>Lansare proiect</strong><br />
+									Publicam site-ul daca totul este cum v-ati dorit</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		</div>	
+		
+		<!-- divider -->
+		<div class="container">
+		<div class="row">
+			<div class="col-lg-12">
+				<div class="solidline">
+				</div>
+			</div>
+		</div>
+		</div>
+		<!-- end divider -->
+	
+		<!-- Portfolio Projects -->
+		<div class="container marginbot50">
+			<div class="row">
+				<div class="col-lg-12">
+					<center><h4 class="heading">Ultimul proiect finalizat</h4></center>
+					<img src="img/dummies/dummy-1200.jpg" alt="" class="img-responsive" />
+				</div>
+			</div>
+			</div>
+		</section>
+		
+		<footer>
+		<div class="container">
+			<div class="row">
+				<div class="col-xs-6 col-md-2 aligncenter client">
+					<img alt="logo" src="img/clients/logo1.png" class="img-responsive" />
+				</div>											
+			</div>
+		</div>
+		<div id="sub-footer">
+			<div class="container">
+				<div class="row">
+					<div class="col-lg-6">
+						<div class="copyright">
+							<p>
+								<span>&copy; MC Design 2020 Toate drepturile rezervate. 
+
+							</p>
+						</div>
+					</div>
+					<div class="col-lg-6">
+						<ul class="social-network">
+<!--/Start async trafic.ro/-->
+<script type="text/javascript" id="trfc_trafic_script">
+//<![CDATA[
+t_rid = 'mcdesign-ro';
+(function(){ t_js_dw_time=new Date().getTime();
+t_js_load_src=((document.location.protocol == 'http:')?'http://storage.':'https://secure.')+'trafic.ro/js/trafic.js?tk='+(Math.pow(10,16)*Math.random())+'&t_rid='+t_rid;
+if (document.createElement && document.getElementsByTagName && document.insertBefore) {
+t_as_js_en=true;var sn = document.createElement('script');sn.type = 'text/javascript';sn.async = true; sn.src = t_js_load_src;
+var psn = document.getElementsByTagName('script')[0];psn.parentNode.insertBefore(sn, psn); } else {
+document.write(unescape('%3Cscri' + 'pt type="text/javascript" '+'src="'+t_js_load_src+';"%3E%3C/sc' + 'ript%3E')); }})();
+//]]>
+</script>
+<noscript><p><a href="http://www.trafic.ro/statistici/mcdesign.ro"><img alt="mcdesign.ro" src="http://log.trafic.ro/cgi-bin/pl.dll?rid=mcdesign-ro" /></a></p></noscript>
+<!--/End async trafic.ro/-->
+							<li><a href="https://www.facebook.com/mcdesignRO" data-placement="top" title="Facebook"><i class="fa fa-facebook"></i></a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+		</footer>
+	</div>
+	<a href="#" class="scrollup"><i class="fa fa-angle-up active"></i></a>
+	
+	<!-- Placed at the end of the document so the pages load faster -->
+	<script src="js/jquery.min.js"></script>
+	<script src="js/modernizr.custom.js"></script>
+	<script src="js/jquery.easing.1.3.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	<script src="plugins/flexslider/jquery.flexslider-min.js"></script> 
+	<script src="plugins/flexslider/flexslider.config.js"></script>
+	<script src="js/jquery.appear.js"></script>
+	<script src="js/stellar.js"></script>
+	<script src="js/classie.js"></script>
+	<script src="js/uisearch.js"></script>
+	<script src="js/jquery.cubeportfolio.min.js"></script>
+	<script src="js/google-code-prettify/prettify.js"></script>
+	<script src="js/animate.js"></script>
+	<script src="js/custom.js"></script>
+	</body>
+	</html>
